@@ -21,29 +21,33 @@
         }
         #game-container {
             background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 20px;
+            border-radius: 10px;
             box-shadow: 0 0 20px rgba(0,0,0,0.2);
-            padding: 20px;
+            padding: 10px;
             text-align: center;
-            max-width: 90vw;
-            width: 400px;
+            max-width: 95vw;
+            width: 95vw;
+            max-height: 95vh;
+            height: 95vh;
+            display: flex;
+            flex-direction: column;
         }
         #game-screen {
-            width: 100%;
-            height: 60vh;
+            flex-grow: 1;
             background-image: url('back.png');
             background-size: cover;
             background-position: center;
             position: relative;
             overflow: hidden;
-            margin: 20px auto;
             border-radius: 10px;
+            margin-bottom: 10px;
         }
         #player {
             position: absolute;
             bottom: 10px;
-            font-size: 40px;
+            font-size: 50px;
             transition: left 0.1s;
+            filter: drop-shadow(0 0 5px var(--main-color));
         }
         .item {
             position: absolute;
@@ -51,7 +55,7 @@
         }
         #score, #timer, #level {
             font-size: 18px;
-            margin: 10px 0;
+            margin: 5px 0;
             color: var(--dark-text);
             font-weight: bold;
         }
@@ -77,6 +81,11 @@
         button:hover {
             background-color: #5fa080;
         }
+        #level-end button {
+            font-size: 20px;
+            font-weight: bold;
+            padding: 15px 25px;
+        }
         a {
             color: var(--main-color);
             text-decoration: none;
@@ -98,10 +107,7 @@
         }
         @media (max-width: 600px) {
             #game-container {
-                padding: 10px;
-            }
-            #game-screen {
-                height: 50vh;
+                padding: 5px;
             }
         }
     </style>
@@ -165,6 +171,7 @@
         let totalCandies = 0;
         let gameInterval;
         let playerCharacter;
+        let backgroundMusic;
 
         const candyEmoji = '🍬';
         const broccoliEmoji = '🥦';
@@ -183,6 +190,7 @@
             gameInfo.style.display = 'block';
             resetGame();
             gameInterval = setInterval(gameLoop, 20);
+            playBackgroundMusic();
         }
 
         function resetGame() {
@@ -292,12 +300,14 @@
             gameOverScreen.style.display = 'block';
             levelEndScreen.style.display = 'none';
             document.getElementById('total-candies').textContent = totalCandies;
+            stopBackgroundMusic();
         }
 
         function restartGame() {
             gameOverScreen.style.display = 'none';
             startScreen.style.display = 'block';
             resetGame();
+            stopBackgroundMusic();
         }
 
         function playSound(isCandy) {
@@ -310,6 +320,19 @@
         function vibrate() {
             if (navigator.vibrate) {
                 navigator.vibrate(200);
+            }
+        }
+
+        function playBackgroundMusic() {
+            backgroundMusic = new Audio('background-music.mid');
+            backgroundMusic.loop = true;
+            backgroundMusic.play();
+        }
+
+        function stopBackgroundMusic() {
+            if (backgroundMusic) {
+                backgroundMusic.pause();
+                backgroundMusic.currentTime = 0;
             }
         }
 
