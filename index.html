@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק תפיסת סוכריות</title>
+    <style>
+        :root {
+            --main-color: #77C19C;
+            --dark-text: #333;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--main-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        #game-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            padding: 20px;
+            text-align: center;
+            max-width: 90vw;
+            width: 400px;
+        }
+        #game-screen {
+            width: 100%;
+            height: 60vh;
+            background-image: url('back.png');
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            overflow: hidden;
+            margin: 20px auto;
+            border-radius: 10px;
+        }
+        #player {
+            position: absolute;
+            bottom: 10px;
+            font-size: 40px;
+            transition: left 0.1s;
+        }
+        .item {
+            position: absolute;
+            font-size: 30px;
+        }
+        #score, #timer, #level {
+            font-size: 18px;
+            margin: 10px 0;
+            color: var(--dark-text);
+            font-weight: bold;
+        }
+        #final-score {
+            font-size: 24px;
+            color: var(--dark-text);
+            font-weight: bold;
+        }
+        button {
+            background-color: var(--main-color);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #5fa080;
+        }
+        a {
+            color: var(--main-color);
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .character-choice {
+            display: inline-block;
+            margin: 0 20px;
+            cursor: pointer;
+        }
+        .character-choice .emoji {
+            font-size: 50px;
+        }
+        @media (max-width: 600px) {
+            #game-container {
+                padding: 10px;
+            }
+            #game-screen {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="start-screen">
+            <h1>ברוכים הבאים למשחק תפיסת סוכריות!</h1>
+            <p>בחרו את השחקן:</p>
+            <div class="character-choice" onclick="chooseCharacter('boy')">
+                <div class="emoji">👦</div>
+                <div>ילד</div>
+            </div>
+            <div class="character-choice" onclick="chooseCharacter('girl')">
+                <div class="emoji">👧</div>
+                <div>ילדה</div>
+            </div>
+        </div>
+        <div id="instructions-screen" style="display: none;">
+            <h2>מוכנים לתחילת המשחק?</h2>
+            <p>איספו כמה שיותר סוכריות והיזהרו מהברוקולי שמורידים ניקוד!</p>
+            <button onclick="startGame()">לתחילת המשחק</button>
+        </div>
+        <div id="game-screen" style="display: none;">
+            <div id="player"></div>
+        </div>
+        <div id="game-info" style="display: none;">
+            <div id="level">שלב 1</div>
+            <div id="score">ניקוד: 0</div>
+            <div id="timer">זמן: 30</div>
+        </div>
+        <div id="level-end" style="display: none;">
+            <h2>מעולה! תפסתם <span id="candies-caught"></span> סוכריות</h2>
+            <button onclick="nextLevel()">המשך לשלב הבא</button>
+        </div>
+        <div id="game-over" style="display: none;">
+            <h2>סיום המשחק!</h2>
+            <p id="final-score">סה"כ סוכריות שנתפסו: <span id="total-candies"></span></p>
+            <button onclick="restartGame()">שחק שוב</button>
+            <br>
+            <a href="#" target="_blank">תרומה לבניית בית הכנסת</a>
+        </div>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const gameScreen = document.getElementById('game-screen');
+        const scoreElement = document.getElementById('score');
+        const timerElement = document.getElementById('timer');
+        const levelElement = document.getElementById('level');
+        const gameInfo = document.getElementById('game-info');
+        const levelEndScreen = document.getElementById('level-end');
+        const gameOverScreen = document.getElementById('game-over');
+        const startScreen = document.getElementById('start-screen');
+        const instructionsScreen = document.getElementById('instructions-screen');
+
+        let score = 0;
+        let timer = 30;
+        let level = 1;
+        let candiesCaught = 0;
+        let totalCandies = 0;
+        let gameInterval;
+        let playerCharacter;
+
+        const candyEmoji = '🍬';
+        const broccoliEmoji = '🥦';
+        const playerEmojis = { boy: '👦', girl: '👧' };
+
+        function chooseCharacter(character) {
+            playerCharacter = character;
+            player.textContent = playerEmojis[character];
+            startScreen.style.display = 'none';
+            instructionsScreen.style.display = 'block';
+        }
+
+        function startGame() {
+            instructionsScreen.style.display = 'none';
+            gameScreen.style.display = 'block';
+            gameInfo.style.display = 'block';
+            resetGame();
+            gameInterval = setInterval(gameLoop, 20);
+        }
+
+        function resetGame() {
+            score = 0;
+            timer = 30;
+            level = 1;
+            candiesCaught = 0;
+            updateScore();
+            updateTimer();
+            updateLevel();
+        }
+
+        function gameLoop() {
+            if (Math.random() < 0.025) {
+                createItem(Math.random() < 0.8 ? candyEmoji : broccoliEmoji);
+            }
+            moveItems();
+            checkCollision();
+            updateTimer();
+        }
+
+        function createItem(emoji) {
+            const item = document.createElement('div');
+            item.className = 'item';
+            item.textContent = emoji;
+            item.style.left = Math.random() * (gameScreen.offsetWidth - 30) + 'px';
+            item.style.top = '0px';
+            gameScreen.appendChild(item);
+        }
+
+        function moveItems() {
+            const items = document.getElementsByClassName('item');
+            let speed = 2 + (level - 1);
+            for (let item of items) {
+                let top = parseInt(item.style.top) || 0;
+                item.style.top = (top + speed) + 'px';
+                if (top > gameScreen.offsetHeight) {
+                    item.remove();
+                }
+            }
+        }
+
+        function checkCollision() {
+            const items = document.getElementsByClassName('item');
+            const playerRect = player.getBoundingClientRect();
+            for (let item of items) {
+                const itemRect = item.getBoundingClientRect();
+                if (playerRect.left < itemRect.right &&
+                    playerRect.right > itemRect.left &&
+                    playerRect.top < itemRect.bottom &&
+                    playerRect.bottom > itemRect.top) {
+                    if (item.textContent === candyEmoji) {
+                        score += 10;
+                        candiesCaught++;
+                    } else if (item.textContent === broccoliEmoji) {
+                        score = Math.max(0, score - 20);
+                        vibrate();
+                    }
+                    item.remove();
+                    updateScore();
+                    playSound(item.textContent === candyEmoji);
+                }
+            }
+        }
+
+        function updateScore() {
+            scoreElement.textContent = 'ניקוד: ' + score;
+        }
+
+        function updateTimer() {
+            timer -= 1/50;
+            if (timer <= 0) {
+                endLevel();
+            }
+            timerElement.textContent = 'זמן: ' + Math.ceil(timer);
+        }
+
+        function updateLevel() {
+            levelElement.textContent = 'שלב ' + level;
+        }
+
+        function endLevel() {
+            clearInterval(gameInterval);
+            levelEndScreen.style.display = 'block';
+            gameScreen.style.display = 'none';
+            gameInfo.style.display = 'none';
+            document.getElementById('candies-caught').textContent = candiesCaught;
+            totalCandies += candiesCaught;
+        }
+
+        function nextLevel() {
+            level++;
+            if (level > 3) {
+                endGame();
+            } else {
+                levelEndScreen.style.display = 'none';
+                gameScreen.style.display = 'block';
+                gameInfo.style.display = 'block';
+                timer = 30;
+                candiesCaught = 0;
+                updateLevel();
+                gameInterval = setInterval(gameLoop, 20);
+            }
+        }
+
+        function endGame() {
+            gameOverScreen.style.display = 'block';
+            levelEndScreen.style.display = 'none';
+            document.getElementById('total-candies').textContent = totalCandies;
+        }
+
+        function restartGame() {
+            gameOverScreen.style.display = 'none';
+            startScreen.style.display = 'block';
+            resetGame();
+        }
+
+        function playSound(isCandy) {
+            // Here you would add code to play a sound
+            // For example:
+            // let audio = new Audio(isCandy ? 'happy-sound.mp3' : 'sad-sound.mp3');
+            // audio.play();
+        }
+
+        function vibrate() {
+            if (navigator.vibrate) {
+                navigator.vibrate(200);
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            const gameRect = gameScreen.getBoundingClientRect();
+            let playerLeft = e.clientX - gameRect.left - player.offsetWidth / 2;
+            playerLeft = Math.max(0, Math.min(playerLeft, gameScreen.offsetWidth - player.offsetWidth));
+            player.style.left = playerLeft + 'px';
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const gameRect = gameScreen.getBoundingClientRect();
+            let playerLeft = e.touches[0].clientX - gameRect.left - player.offsetWidth / 2;
+            playerLeft = Math.max(0, Math.min(playerLeft, gameScreen.offsetWidth - player.offsetWidth));
+            player.style.left = playerLeft + 'px';
+        }, { passive: false });
+    </script>
+</body>
+</html>
